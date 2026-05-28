@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Pink Block Bloom</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #ff8fcb, #ffb6dc, #ffd1ea);
+      overflow: hidden;
+      color: #8a2d65;
+    }
+
+    .game-wrap {
+      width: min(94vw, 560px);
+      padding: 24px;
+      border-radius: 32px;
+      background: rgba(255, 185, 220, 0.55);
+      box-shadow: 0 24px 70px rgba(255, 67, 165, 0.32);
+      backdrop-filter: blur(14px);
+      border: 2px solid rgba(255, 238, 248, 0.8);
+      text-align: center;
+      position: relative;
+    }
+
+    h1 {
+      font-size: 38px;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+      color: #b91f78;
+      text-shadow: 0 3px 0 rgba(255, 221, 240, 0.9);
+    }
+
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .score-box, .best-box {
+      flex: 1;
+      background: rgba(255, 210, 235, 0.8);
+      border-radius: 20px;
+      padding: 12px;
+      box-shadow: inset 0 0 0 2px rgba(255, 245, 250, 0.75);
+    }
+
+    .label {
+      font-size: 13px;
+      opacity: 0.7;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+
+    .number {
+      font-size: 28px;
+      font-weight: bold;
+      color: #c92283;
+    }
+
+    #board {
+      width: min(88vw, 420px);
+      height: min(88vw, 420px);
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      grid-template-rows: repeat(8, 1fr);
+      gap: 7px;
+      padding: 10px;
+      border-radius: 26px;
+      background: rgba(255, 184, 220, 0.7);
+      box-shadow: inset 0 0 22px rgba(213, 45, 139, 0.22);
+    }
+
+    .cell {
+      border-radius: 12px;
+      background: rgba(255, 223, 241, 0.78);
+      box-shadow: inset 0 0 0 2px rgba(255, 246, 251, 0.65);
+      transition: 0.15s;
+    }
+
+    .cell.preview {
+      outline: 3px dashed rgba(255, 47, 154, 0.55);
+      transform: scale(0.96);
+    }
+
+    .cell.bad-preview {
+      outline: 3px dashed rgba(190, 0, 98, 0.55);
+      transform: scale(0.96);
+    }
+
+    .filled {
+      background: linear-gradient(145deg, #ff9bd0, #ff62b6, #ff3fa6);
+      box-shadow: inset 0 -5px 0 rgba(151, 0, 84, 0.13), 0 5px 14px rgba(255, 54, 160, 0.22);
+    }
+
+    #pieces {
+      display: flex;
+      justify-content: center;
+      gap: 18px;
+      min-height: 122px;
+      margin-top: 22px;
+    }
+
+    .piece-holder {
+      width: 120px;
+      height: 120px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 24px;
+      background: rgba(255, 200, 230, 0.62);
+      border: 2px solid rgba(255, 239, 248, 0.8);
+      transition: 0.18s;
+      position: relative;
+    }
+
+    .piece-holder:hover {
+      transform: translateY(-3px);
+      background: rgba(255, 220, 240, 0.85);
+    }
+
+    .piece-holder.used {
+      opacity: 0.2;
+      pointer-events: none;
+    }
+
+    .piece {
+      display: grid;
+      gap: 6px;
+      cursor: grab;
+      touch-action: none;
+      transition: transform 0.15s;
+    }
+
+    .mini {
+      width: 25px;
+      height: 25px;
+      border-radius: 8px;
+      background: linear-gradient(145deg, #ff9bd0, #ff62b6, #ff3fa6);
+      box-shadow: inset 0 -4px 0 rgba(151, 0, 84, 0.13), 0 4px 10px rgba(255, 54, 160, 0.2);
+    }
+
+    .dragging {
+      position: fixed;
+      z-index: 50;
+      pointer-events: none;
+      transform: scale(1.12);
+      filter: drop-shadow(0 16px 18px rgba(120, 70, 140, 0.25));
+    }
+
+    .buttons {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    button {
+      border: none;
+      padding: 12px 18px;
+      border-radius: 18px;
+      font-weight: bold;
+      background: #ffd1ea;
+      color: #b91f78;
+      cursor: pointer;
+      box-shadow: 0 7px 16px rgba(255, 54, 160, 0.22);
+      transition: 0.18s;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      background: #ffe6f3;
+    }
+
+    .message {
+      margin-top: 12px;
+      font-weight: bold;
+      min-height: 22px;
+      color: #b91f78;
+    }
+
+    .particle {
+      position: fixed;
+      pointer-events: none;
+      z-index: 100;
+      font-size: 22px;
+      animation: floatPop 800ms ease-out forwards;
+    }
+
+    @keyframes floatPop {
+      0% {
+        opacity: 1;
+        transform: translate(0, 0) scale(0.7) rotate(0deg);
+      }
+      100% {
+        opacity: 0;
+        transform: translate(var(--x), var(--y)) scale(1.5) rotate(35deg);
+      }
+    }
+
+    .clear-flash {
+      animation: clearFlash 360ms ease-out;
+    }
+
+    @keyframes clearFlash {
+      0% { transform: scale(1); filter: brightness(1); }
+      50% { transform: scale(1.08); filter: brightness(1.2); }
+      100% { transform: scale(1); filter: brightness(1); }
+    }
+
+    @media (max-width: 520px) {
+      .game-wrap { padding: 16px; border-radius: 24px; }
+      h1 { font-size: 30px; }
+      #pieces { gap: 8px; }
+      .piece-holder { width: 96px; height: 104px; }
+      .mini { width: 21px; height: 21px; border-radius: 7px; }
+      #board { gap: 5px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="game-wrap">
+    <h1>Pink Block Bloom</h1>
+
+    <div class="top-bar">
+      <div class="score-box">
+        <div class="label">Score</div>
+        <div id="score" class="number">0</div>
+      </div>
+      <div class="best-box">
+        <div class="label">Best</div>
+        <div id="best" class="number">0</div>
+      </div>
+    </div>
+
+    <div id="board"></div>
+    <div id="pieces"></div>
+
+    <div class="buttons">
+      <button onclick="restartGame()">Restart</button>
+      <button onclick="newPieces()">New Pieces</button>
+    </div>
+
+    <div id="message" class="message"></div>
+  </div>
+
+  <script>
+    const board = document.getElementById("board");
+    const piecesBox = document.getElementById("pieces");
+    const scoreText = document.getElementById("score");
+    const bestText = document.getElementById("best");
+    const message = document.getElementById("message");
+
+    const size = 8;
+    let grid = [];
+    let score = 0;
+    let best = Number(localStorage.getItem("pinkBlockBest")) || 0;
+    let dragging = null;
+
+    const shapes = [
+      [[1]],
+      [[1, 1]],
+      [[1], [1]],
+      [[1, 1, 1]],
+      [[1], [1], [1]],
+      [[1, 1], [1, 1]],
+      [[1, 1, 1], [0, 1, 0]],
+      [[1, 0], [1, 0], [1, 1]],
+      [[0, 1], [0, 1], [1, 1]],
+      [[1, 1, 0], [0, 1, 1]],
+      [[0, 1, 1], [1, 1, 0]],
+      [[1, 1, 1], [1, 0, 0]],
+      [[1, 1, 1], [0, 0, 1]],
+      [[1, 1, 1, 1]],
+      [[1], [1], [1], [1]]
+    ];
+
+    bestText.textContent = best;
+
+    function startGame() {
+      grid = Array.from({ length: size }, () => Array(size).fill(null));
+      score = 0;
+      scoreText.textContent = score;
+      message.textContent = "Drag a pink block onto the board.";
+      drawBoard();
+      newPieces();
+    }
+
+    function drawBoard() {
+      board.innerHTML = "";
+      for (let r = 0; r < size; r++) {
+        for (let c = 0; c < size; c++) {
+          const cell = document.createElement("div");
+          cell.className = "cell";
+          cell.dataset.row = r;
+          cell.dataset.col = c;
+          if (grid[r][c]) cell.classList.add("filled");
+          board.appendChild(cell);
+        }
+      }
+    }
+
+    function createPiece(shape) {
+      const piece = document.createElement("div");
+      piece.className = "piece";
+      piece.style.gridTemplateColumns = `repeat(${shape[0].length}, 25px)`;
+      piece.style.gridTemplateRows = `repeat(${shape.length}, 25px)`;
+      piece.dataset.shape = JSON.stringify(shape);
+
+      for (let r = 0; r < shape.length; r++) {
+        for (let c = 0; c < shape[0].length; c++) {
+          const mini = document.createElement("div");
+          if (shape[r][c]) mini.className = "mini";
+          piece.appendChild(mini);
+        }
+      }
+
+      piece.addEventListener("pointerdown", startDrag);
+      return piece;
+    }
+
+    function newPieces() {
+      piecesBox.innerHTML = "";
+
+      for (let i = 0; i < 3; i++) {
+        const holder = document.createElement("div");
+        holder.className = "piece-holder";
+        const shape = shapes[Math.floor(Math.random() * shapes.length)];
+        holder.appendChild(createPiece(shape));
+        piecesBox.appendChild(holder);
+      }
+
+      message.textContent = canAnyPieceFit() ? "Pick a cute pink piece." : "No moves left. Restart or make new pieces.";
+    }
+
+    function startDrag(e) {
+      const original = e.currentTarget;
+      const holder = original.parentElement;
+      if (holder.classList.contains("used")) return;
+
+      const rect = original.getBoundingClientRect();
+      const clone = original.cloneNode(true);
+      clone.classList.add("dragging");
+      clone.style.left = rect.left + "px";
+      clone.style.top = rect.top + "px";
+      document.body.appendChild(clone);
+      original.style.opacity = "0.25";
+
+      dragging = {
+        clone,
+        original,
+        holder,
+        shape: JSON.parse(original.dataset.shape),
+        offsetX: e.clientX - rect.left,
+        offsetY: e.clientY - rect.top
+      };
+
+      makeParticles(e.clientX, e.clientY, 12);
+      moveDrag(e);
+      window.addEventListener("pointermove", moveDrag);
+      window.addEventListener("pointerup", endDrag);
+    }
+
+    function moveDrag(e) {
+      if (!dragging) return;
+      dragging.clone.style.left = e.clientX - dragging.offsetX + "px";
+      dragging.clone.style.top = e.clientY - dragging.offsetY + "px";
+      showPreview(e.clientX, e.clientY);
+    }
+
+    function endDrag(e) {
+      if (!dragging) return;
+      clearPreview();
+
+      const pos = getBoardCell(e.clientX, e.clientY);
+      if (pos && canPlace(dragging.shape, pos.row, pos.col)) {
+        placePiece(dragging.shape, pos.row, pos.col);
+        dragging.holder.classList.add("used");
+        makeParticles(e.clientX, e.clientY, 18);
+        score += countBlocks(dragging.shape) * 5;
+        checkLines();
+        updateScore();
+
+        if ([...piecesBox.children].every(h => h.classList.contains("used"))) {
+          setTimeout(newPieces, 350);
+        } else if (!canAnyPieceFit()) {
+          message.textContent = "No moves left. Restart or press New Pieces.";
+        } else {
+          message.textContent = "Nice place! Keep blooming.";
+        }
+      } else {
+        dragging.original.style.opacity = "1";
+        message.textContent = "That piece does not fit there.";
+      }
+
+      dragging.clone.remove();
+      dragging = null;
+      window.removeEventListener("pointermove", moveDrag);
+      window.removeEventListener("pointerup", endDrag);
+    }
+
+    function getBoardCell(x, y) {
+      const boardRect = board.getBoundingClientRect();
+      if (x < boardRect.left || x > boardRect.right || y < boardRect.top || y > boardRect.bottom) return null;
+
+      const cellSize = boardRect.width / size;
+      const col = Math.floor((x - boardRect.left) / cellSize);
+      const row = Math.floor((y - boardRect.top) / cellSize);
+      return { row, col };
+    }
+
+    function showPreview(x, y) {
+      clearPreview();
+      const pos = getBoardCell(x, y);
+      if (!pos || !dragging) return;
+
+      const good = canPlace(dragging.shape, pos.row, pos.col);
+      for (let r = 0; r < dragging.shape.length; r++) {
+        for (let c = 0; c < dragging.shape[0].length; c++) {
+          if (!dragging.shape[r][c]) continue;
+          const row = pos.row + r;
+          const col = pos.col + c;
+          const cell = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+          if (cell) cell.classList.add(good ? "preview" : "bad-preview");
+        }
+      }
+    }
+
+    function clearPreview() {
+      document.querySelectorAll(".preview, .bad-preview").forEach(cell => {
+        cell.classList.remove("preview", "bad-preview");
+      });
+    }
+
+    function canPlace(shape, startRow, startCol) {
+      for (let r = 0; r < shape.length; r++) {
+        for (let c = 0; c < shape[0].length; c++) {
+          if (!shape[r][c]) continue;
+          const row = startRow + r;
+          const col = startCol + c;
+          if (row < 0 || row >= size || col < 0 || col >= size) return false;
+          if (grid[row][col]) return false;
+        }
+      }
+      return true;
+    }
+
+    function placePiece(shape, startRow, startCol) {
+      for (let r = 0; r < shape.length; r++) {
+        for (let c = 0; c < shape[0].length; c++) {
+          if (shape[r][c]) grid[startRow + r][startCol + c] = true;
+        }
+      }
+      drawBoard();
+    }
+
+    function checkLines() {
+      const rowsToClear = [];
+      const colsToClear = [];
+
+      for (let r = 0; r < size; r++) {
+        if (grid[r].every(Boolean)) rowsToClear.push(r);
+      }
+
+      for (let c = 0; c < size; c++) {
+        let full = true;
+        for (let r = 0; r < size; r++) {
+          if (!grid[r][c]) full = false;
+        }
+        if (full) colsToClear.push(c);
+      }
+
+      if (rowsToClear.length || colsToClear.length) {
+        flashClears(rowsToClear, colsToClear);
+        setTimeout(() => {
+          rowsToClear.forEach(r => grid[r].fill(null));
+          colsToClear.forEach(c => {
+            for (let r = 0; r < size; r++) grid[r][c] = null;
+          });
+          const cleared = rowsToClear.length + colsToClear.length;
+          score += cleared * cleared * 80;
+          updateScore();
+          drawBoard();
+          message.textContent = `Pink clear! +${cleared * cleared * 80}`;
+        }, 300);
+      }
+    }
+
+    function flashClears(rows, cols) {
+      rows.forEach(r => {
+        for (let c = 0; c < size; c++) {
+          const cell = document.querySelector(`[data-row="${r}"][data-col="${c}"]`);
+          if (cell) cell.classList.add("clear-flash");
+        }
+      });
+
+      cols.forEach(c => {
+        for (let r = 0; r < size; r++) {
+          const cell = document.querySelector(`[data-row="${r}"][data-col="${c}"]`);
+          if (cell) cell.classList.add("clear-flash");
+        }
+      });
+    }
+
+    function updateScore() {
+      scoreText.textContent = score;
+      if (score > best) {
+        best = score;
+        localStorage.setItem("pinkBlockBest", best);
+        bestText.textContent = best;
+      }
+    }
+
+    function countBlocks(shape) {
+      return shape.flat().filter(Boolean).length;
+    }
+
+    function canAnyPieceFit() {
+      const holders = [...piecesBox.children];
+      for (const holder of holders) {
+        if (holder.classList.contains("used")) continue;
+        const piece = holder.querySelector(".piece");
+        if (!piece) continue;
+        const shape = JSON.parse(piece.dataset.shape);
+        for (let r = 0; r < size; r++) {
+          for (let c = 0; c < size; c++) {
+            if (canPlace(shape, r, c)) return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    function makeParticles(x, y, amount) {
+      const icons = ["🌸", "🌷", "💗", "💖", "🌼", "💕"];
+      for (let i = 0; i < amount; i++) {
+        const particle = document.createElement("div");
+        particle.className = "particle";
+        particle.textContent = icons[Math.floor(Math.random() * icons.length)];
+        particle.style.left = x + "px";
+        particle.style.top = y + "px";
+        particle.style.setProperty("--x", `${Math.random() * 120 - 60}px`);
+        particle.style.setProperty("--y", `${Math.random() * -110 - 25}px`);
+        particle.style.animationDelay = `${Math.random() * 90}ms`;
+        document.body.appendChild(particle);
+        setTimeout(() => particle.remove(), 1000);
+      }
+    }
+
+    function restartGame() {
+      startGame();
+    }
+
+    startGame();
+  </script>
+</body>
+</html>
